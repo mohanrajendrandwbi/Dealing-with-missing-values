@@ -1,0 +1,74 @@
+---
+title: "Dealing with missing values"
+output:
+  html_notebook: default
+  html_document: default
+---
+
+Titanic data set. This is a data set that records various attributes of passengers on the Titanic, including who survived and who didn’t.
+
+```{r Library Files, message=FALSE, warning=FALSE, include=FALSE}
+install.packages("stringdist")
+library("stringdist")
+install.packages("dplyr")
+library("dplyr")
+install.packages("tidyr")
+library("tidyr")
+install.packages("dummies")
+library("dummies")
+```
+
+Save the data set as a CSV file called titanic_original.csv and load it in RStudio into a data frame.
+
+```{r Load Data, echo=TRUE, message=FALSE, warning=FALSE}
+# 0: Load the data in RStudio
+dfOriginal <- read.csv("titanic_original.csv")
+df <- dfOriginal
+df
+```
+
+The embarked column has some missing values, which are known to correspond to passengers who actually embarked at Southampton. Find the missing values and replace them with S. (Caution: Sometimes a missing value might be read into R as a blank or empty string.)
+
+```{r Port of embarkation, echo=TRUE, message=FALSE, warning=FALSE}
+# 1: Port of embarkation
+for (i in 1:length(df$embarked)) {
+  if(is.na(df$embarked[i]) | is.null(trimws(df$embarked[i])) | trimws(df$embarked[i]) == "" ) {
+    df$embarked[i] <- "S"
+  }
+}
+df
+```
+
+Calculate the mean of the Age column and use that value to populate the missing values
+Why would you pick any of those over the mean (or not)? Mean wont affect many of the statistical calculations.
+
+```{r Age, echo=TRUE, message=FALSE, warning=FALSE}
+# 2: Age
+# Applying mean is better for missing values as it wont affect any calculations we got to perform on this column
+meanAge <- mean(df$age, na.rm = TRUE)
+df <- mutate(df, age = ifelse(is.na(age), meanAge, age))
+df
+```
+
+You’re interested in looking at the distribution of passengers in different lifeboats, but as we know, many passengers did not make it to a boat :-( This means that there are a lot of missing values in the boat column. Fill these empty slots with a dummy value e.g. the string 'None' or 'NA'
+
+```{r Lifeboat, echo=TRUE, message=FALSE, warning=FALSE}
+df <- mutate(df, boat = ifelse(is.null(boat) | is.na(boat) | trimws(boat) == "", NA, boat))
+df
+```
+
+You notice that many passengers don’t have a cabin number associated with them.
+* Does it make sense to fill missing cabin numbers with a value?
+* What does a missing value here mean?
+You have a hunch that the fact that the cabin number is missing might be a useful indicator of survival. 
+Create a new column has_cabin_number which has 1 if there is a cabin number, and 0 otherwise.
+
+```{r Cabin, echo=TRUE, message=FALSE, warning=FALSE}
+df <- mutate(df, has_cabin_number = ifelse(is.null(cabin) | is.na(cabin) | trimws(cabin) == "", 0, 1))
+df
+```
+
+Write back to CSV file as titanic_clean.csv
+```{r Save output, echo=TRUE, message=FALSE, warning=FALSE}
+write.csv(df, file = "titanic_clean.csv")
+```
